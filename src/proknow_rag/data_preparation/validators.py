@@ -1,6 +1,5 @@
 import re
 from pathlib import Path
-from typing import set
 
 ALLOWED_EXTENSIONS: set[str] = {".md", ".pdf", ".py", ".js", ".ts", ".tex", ".txt", ".rst", ".html", ".json", ".yaml", ".yml", ".toml"}
 MAX_FILE_SIZE_MB: int = 50
