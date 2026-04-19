@@ -1,0 +1,56 @@
+# 环境变量
+.env
+.env.*
+!.env.example
+
+# 数据目录
+data/raw/
+data/parsed/
+data/chunked/
+
+# 向量数据库存储
+qdrant_storage/
+
+# 模型文件
+models/
+*.bin
+*.onnx
+*.safetensors
+*.gguf
+*.pt
+*.pth
+*.ckpt
+*.pkl
+
+# 密钥文件
+*.key
+*.secret
+*.pem
+
+# 参考仓库
+repos/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+logs/
+
+# 缓存
+.cache/

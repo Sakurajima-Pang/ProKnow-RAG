@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "proknow-rag"
+version = "0.1.0"
+description = "Professional Knowledge Retrieval System"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [{name = "Sakurajima-Pang"}]
+
+dependencies = [
+    "langchain>=0.3.0,<0.4.0",
+    "langchain-core>=0.3.0,<0.4.0",
+    "langchain-community>=0.3.0,<0.4.0",
+    "langchain-huggingface>=0.3.0,<0.4.0",
+    "langchain-text-splitters>=0.3.0,<0.4.0",
+    "qdrant-client>=1.9.0,<2.0.0",
+    "sentence-transformers>=3.0.0,<4.0.0",
+    "transformers>=4.40.0,<5.0.0",
+    "huggingface-hub>=0.33.0",
+    "accelerate>=0.20.0",
+    "FlagEmbedding>=1.0.0",
+    "rank-bm25>=0.2.2",
+    "pypdf>=4.0.0",
+    "markdown>=3.8.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "numpy>=1.24.0",
+    "tiktoken>=0.4.0",
+    "tenacity>=8.0.0",
+    "structlog>=24.0.0",
+    "tqdm>=4.64.0",
+]
+
+[project.optional-dependencies]
+unstructured = ["unstructured[md,pdf]>=0.18.0"]
+eval = ["ragas>=0.1.0"]
+dev = ["pytest>=8.0.0", "pytest-cov>=4.0.0", "ruff>=0.4.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
