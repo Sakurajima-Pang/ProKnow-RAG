@@ -39,6 +39,7 @@ dependencies = [
 [project.optional-dependencies]
 unstructured = ["unstructured[md,pdf]>=0.18.0"]
 eval = ["ragas>=0.1.0"]
+gui = ["gradio>=5.0.0"]
 dev = ["pytest>=8.0.0", "pytest-cov>=4.0.0", "ruff>=0.4.0"]
 
 [tool.setuptools.packages.find]

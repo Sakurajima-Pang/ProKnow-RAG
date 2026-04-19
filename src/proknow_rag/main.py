@@ -196,6 +196,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     info_parser = subparsers.add_parser("info", help="显示系统信息")
 
+    gui_parser = subparsers.add_parser("gui", help="启动 GUI 管理界面")
+    gui_parser.add_argument("--port", type=int, default=7860, help="服务端口")
+    gui_parser.add_argument("--no-browser", action="store_true", help="不自动打开浏览器")
+
     return parser
 
 
@@ -215,6 +219,17 @@ def main() -> None:
             cmd_search(args)
         elif args.command == "info":
             cmd_info(args)
+        elif args.command == "gui":
+            from proknow_rag.gui import build_gui, _setup_log_capture
+            setup_logging()
+            _setup_log_capture()
+            app = build_gui()
+            app.launch(
+                server_name="127.0.0.1",
+                server_port=args.port,
+                share=False,
+                inbrowser=not args.no_browser,
+            )
     except ProKnowRAGError as e:
         logger.error("执行失败", command=args.command, error=str(e))
         print(f"\n错误: {e}")
