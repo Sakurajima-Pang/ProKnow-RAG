@@ -7,7 +7,7 @@ def get_gpu_memory_info() -> dict:
     try:
         import torch
         if torch.cuda.is_available():
-            total = torch.cuda.get_device_properties(0).total_mem
+            total = torch.cuda.get_device_properties(0).total_memory
             allocated = torch.cuda.memory_allocated(0)
             free = total - allocated
             return {"total_mb": total // 1024 // 1024, "allocated_mb": allocated // 1024 // 1024, "free_mb": free // 1024 // 1024}

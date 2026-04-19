@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+from pathlib import Path
 
 import structlog
 
@@ -152,16 +153,20 @@ def cmd_info(args: argparse.Namespace) -> None:
         embedder = BGEM3Embedder(settings)
         embedder_loaded = True
         print(f"  BGE-M3 Embedder: 已加载 (GPU: {embedder.use_gpu})")
+        del embedder
+        import gc, torch
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
     except Exception as e:
         print(f"  BGE-M3 Embedder: 未加载 ({e})")
 
     reranker_loaded = False
-    try:
-        reranker = BGEReranker(settings=settings)
-        reranker_loaded = True
-        print(f"  BGE Reranker:    已加载 (GPU: {reranker.use_gpu})")
-    except Exception as e:
-        print(f"  BGE Reranker:    未加载 ({e})")
+    reranker_model_path = Path(settings.bge_m3_model_path).parent / "bge-reranker-v2-m3"
+    if reranker_model_path.exists():
+        print(f"  BGE Reranker:    模型文件存在 ({reranker_model_path})")
+    else:
+        print(f"  BGE Reranker:    模型文件不存在 (请运行 scripts/download_models.py)")
 
     print("\n[Settings]")
     print(f"  Qdrant Storage: {settings.qdrant_storage_path}")
