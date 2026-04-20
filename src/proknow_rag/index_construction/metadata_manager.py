@@ -24,11 +24,13 @@ PII_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("ipv4", re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")),
 ]
 
+_PHONE_PLACEHOLDER = "[PHONE]"
+
 PII_PLACEHOLDERS: dict[str, str] = {
     "email": "[EMAIL]",
-    "phone_cn": "[PHONE]",
-    "phone_intl": "[PHONE]",
-    "phone_us": "[PHONE]",
+    "phone_cn": _PHONE_PLACEHOLDER,
+    "phone_intl": _PHONE_PLACEHOLDER,
+    "phone_us": _PHONE_PLACEHOLDER,
     "id_card_cn": "[ID_CARD]",
     "ipv4": "[IP_ADDRESS]",
 }

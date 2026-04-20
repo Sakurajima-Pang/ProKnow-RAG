@@ -70,7 +70,7 @@ def get_system_info() -> str:
         for coll in collections:
             try:
                 info = store.get_collection_info(coll.name)
-                lines.append(f"- **{coll.name}**: {info['points_count']} 向量 | {info['vectors_count']} 索引 | {info['status']}")
+                lines.append(f"- **{coll.name}**: {info['points_count']} 点 | {info['vectors_count']} 索引向量 | {info['status']}")
             except Exception as e:
                 lines.append(f"- **{coll.name}**: 获取信息失败 ({e})")
     except Exception as e:

@@ -54,7 +54,6 @@ class AstChunker(BaseChunker):
         )
 
     def _class_to_chunks(self, doc: Document) -> list[PreparedChunk]:
-        class_name = doc.metadata.get("class_name", "")
         class_content = doc.content
 
         if len(class_content) <= self.max_class_size:

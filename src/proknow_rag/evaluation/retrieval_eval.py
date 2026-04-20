@@ -3,6 +3,8 @@ from __future__ import annotations
 import math
 from typing import Sequence
 
+_EPSILON = 1e-10
+
 from pydantic import BaseModel
 
 
@@ -52,7 +54,7 @@ def idcg_at_k(num_relevant: int, k: int) -> float:
 
 def ndcg_at_k(relevant_ids: set[str], retrieved_ids: Sequence[str], k: int) -> float:
     ideal = idcg_at_k(len(relevant_ids), k)
-    if ideal == 0.0:
+    if ideal < _EPSILON:
         return 0.0
     actual = dcg_at_k(relevant_ids, retrieved_ids, k)
     return actual / ideal

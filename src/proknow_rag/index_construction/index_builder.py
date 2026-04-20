@@ -35,7 +35,7 @@ class IndexBuilder:
         raw = f"{chunk.content}|{chunk.source}|{chunk.chunk_type}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
-    def _is_indexed(self, collection_name: str, chunk_hash: str) -> bool:
+    def _is_indexed(self, _collection_name: str, chunk_hash: str) -> bool:
         record = self.metadata_manager.get_version(chunk_hash)
         return record is not None and record.get("indexed", False)
 
@@ -124,11 +124,13 @@ class IndexBuilder:
                 processed_metadata["chunk_type"] = chunk.chunk_type
 
                 dense_vec = all_dense[i].tolist() if hasattr(all_dense[i], "tolist") else all_dense[i]
-                colbert_vec = (
-                    [v.tolist() if hasattr(v, "tolist") else v for v in all_colbert[i]]
-                    if isinstance(all_colbert[i], list)
-                    else all_colbert[i].tolist() if hasattr(all_colbert[i], "tolist") else all_colbert[i]
-                )
+                colbert_raw = all_colbert[i]
+                if isinstance(colbert_raw, list):
+                    colbert_vec = [v.tolist() if hasattr(v, "tolist") else v for v in colbert_raw]
+                elif hasattr(colbert_raw, "tolist"):
+                    colbert_vec = colbert_raw.tolist()
+                else:
+                    colbert_vec = colbert_raw
                 sparse_dict = all_sparse[i]
                 sparse_indices = []
                 sparse_values = []

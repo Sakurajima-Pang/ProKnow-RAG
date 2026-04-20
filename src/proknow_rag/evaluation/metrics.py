@@ -13,7 +13,7 @@ def cosine_similarity(a: Sequence[float], b: Sequence[float]) -> float:
     dot = np.dot(vec_a, vec_b)
     norm_a = np.linalg.norm(vec_a)
     norm_b = np.linalg.norm(vec_b)
-    if norm_a == 0.0 or norm_b == 0.0:
+    if np.isclose(norm_a, 0.0) or np.isclose(norm_b, 0.0):
         return 0.0
     return float(dot / (norm_a * norm_b))
 
@@ -24,12 +24,12 @@ def cosine_similarity_batch(query: Sequence[float], candidates: Sequence[Sequenc
     query_vec = np.asarray(query, dtype=np.float64)
     candidate_matrix = np.asarray(candidates, dtype=np.float64)
     query_norm = np.linalg.norm(query_vec)
-    if query_norm == 0.0:
+    if np.isclose(query_norm, 0.0):
         return [0.0] * len(candidates)
     candidate_norms = np.linalg.norm(candidate_matrix, axis=1)
     dots = candidate_matrix @ query_vec
     denominators = candidate_norms * query_norm
-    denominators = np.where(denominators == 0.0, 1.0, denominators)
+    denominators = np.where(np.isclose(denominators, 0.0), 1.0, denominators)
     return (dots / denominators).tolist()
 
 

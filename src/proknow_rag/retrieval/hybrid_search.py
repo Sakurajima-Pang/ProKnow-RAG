@@ -177,11 +177,12 @@ class HybridSearcher:
             sparse_dict = embeddings["sparse_vectors"][0]
             query_sparse = self._build_sparse_vector(sparse_dict)
             colbert_raw = embeddings["colbert_vectors"][0]
-            query_colbert = (
-                [v.tolist() if hasattr(v, "tolist") else v for v in colbert_raw]
-                if isinstance(colbert_raw, list)
-                else colbert_raw.tolist() if hasattr(colbert_raw, "tolist") else colbert_raw
-            )
+            if isinstance(colbert_raw, list):
+                query_colbert = [v.tolist() if hasattr(v, "tolist") else v for v in colbert_raw]
+            elif hasattr(colbert_raw, "tolist"):
+                query_colbert = colbert_raw.tolist()
+            else:
+                query_colbert = colbert_raw
 
             all_results: dict[str, list[tuple[int, float]]] = {}
             doc_data: dict[str, SearchResult] = {}

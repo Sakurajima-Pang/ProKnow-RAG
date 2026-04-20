@@ -1,7 +1,20 @@
 import json
 from pathlib import Path
 
+import numpy as np
+
 from proknow_rag.common.config import Settings
+
+
+class _NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, (np.integer,)):
+            return int(obj)
+        if isinstance(obj, (np.floating,)):
+            return float(obj)
+        return super().default(obj)
 
 
 class EmbeddingCache:
@@ -32,7 +45,7 @@ class EmbeddingCache:
     def _append_entry(self, content_hash: str, data: dict) -> None:
         entry = {"hash": content_hash, "data": data}
         with open(self._cache_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            f.write(json.dumps(entry, ensure_ascii=False, cls=_NumpyEncoder) + "\n")
 
     def get(self, content_hash: str) -> dict | None:
         return self._cache.get(content_hash)
@@ -55,7 +68,7 @@ class EmbeddingCache:
         with open(self._cache_file, "w", encoding="utf-8") as f:
             for content_hash, data in self._cache.items():
                 entry = {"hash": content_hash, "data": data}
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                f.write(json.dumps(entry, ensure_ascii=False, cls=_NumpyEncoder) + "\n")
 
     def contains(self, content_hash: str) -> bool:
         return content_hash in self._cache

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from FlagEmbedding import FlagModel
+from FlagEmbedding import BGEM3FlagModel
 
 from proknow_rag.common.config import Settings
 from proknow_rag.common.exceptions import EmbeddingError
@@ -16,12 +16,33 @@ class BGEM3Embedder:
         self._use_gpu = check_gpu_available(min_mb=2048)
         if self._use_gpu:
             try:
-                self.model = FlagModel(model_path, use_fp16=True, devices="cuda")
-            except Exception as e:
+                self.model = BGEM3FlagModel(
+                    model_path,
+                    use_fp16=True,
+                    devices="cuda",
+                    return_dense=True,
+                    return_sparse=True,
+                    return_colbert_vecs=True,
+                )
+            except Exception:
                 self._use_gpu = False
-                self.model = FlagModel(model_path, use_fp16=False, devices="cpu")
+                self.model = BGEM3FlagModel(
+                    model_path,
+                    use_fp16=False,
+                    devices="cpu",
+                    return_dense=True,
+                    return_sparse=True,
+                    return_colbert_vecs=True,
+                )
         else:
-            self.model = FlagModel(model_path, use_fp16=False, devices="cpu")
+            self.model = BGEM3FlagModel(
+                model_path,
+                use_fp16=False,
+                devices="cpu",
+                return_dense=True,
+                return_sparse=True,
+                return_colbert_vecs=True,
+            )
 
     @property
     def use_gpu(self) -> bool:
@@ -63,7 +84,14 @@ class BGEM3Embedder:
                 try:
                     self._use_gpu = False
                     model_path = self.settings.bge_m3_model_path
-                    self.model = FlagModel(model_path, use_fp16=False, devices="cpu")
+                    self.model = BGEM3FlagModel(
+                        model_path,
+                        use_fp16=False,
+                        devices="cpu",
+                        return_dense=True,
+                        return_sparse=True,
+                        return_colbert_vecs=True,
+                    )
                     result = self.model.encode(
                         texts,
                         return_dense=True,

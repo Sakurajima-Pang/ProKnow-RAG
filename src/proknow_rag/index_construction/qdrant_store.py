@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 
 from qdrant_client import QdrantClient
@@ -5,6 +6,7 @@ from qdrant_client.models import (
     Distance,
     MultiVectorComparator,
     MultiVectorConfig,
+    PointIdsList,
     PointStruct,
     Prefetch,
     SparseIndexParams,
@@ -13,10 +15,33 @@ from qdrant_client.models import (
     VectorParams,
     FusionQuery,
     Fusion,
+    Filter,
+    FieldCondition,
+    MatchValue,
 )
 
 from proknow_rag.common.config import Settings
 from proknow_rag.common.exceptions import QdrantError
+
+_client_lock = threading.Lock()
+_client_instance: QdrantClient | None = None
+_client_storage_path: str | None = None
+
+
+def _get_shared_client(storage_path: str) -> QdrantClient:
+    global _client_instance, _client_storage_path
+    with _client_lock:
+        if _client_instance is not None and _client_storage_path == storage_path:
+            return _client_instance
+        if _client_instance is not None:
+            try:
+                _client_instance.close()
+            except Exception:
+                pass
+            _client_instance = None
+        _client_instance = QdrantClient(path=storage_path)
+        _client_storage_path = storage_path
+        return _client_instance
 
 
 class QdrantEmbeddedStore:
@@ -24,7 +49,7 @@ class QdrantEmbeddedStore:
         self.settings = settings or Settings()
         storage_path = str(Path(self.settings.qdrant_storage_path).resolve())
         try:
-            self.client = QdrantClient(path=storage_path)
+            self.client = _get_shared_client(storage_path)
         except Exception as e:
             raise QdrantError(f"Qdrant 初始化失败: {e}") from e
 
@@ -97,6 +122,14 @@ class QdrantEmbeddedStore:
         except Exception as e:
             raise QdrantError(f"向量 upsert 失败: {e}") from e
 
+    def _build_filter(self, filter_conditions: dict | None) -> Filter | None:
+        if not filter_conditions:
+            return None
+        conditions = []
+        for field, value in filter_conditions.items():
+            conditions.append(FieldCondition(key=field, match=MatchValue(value=value)))
+        return Filter(must=conditions) if conditions else None
+
     def search(
         self,
         collection_name: str,
@@ -108,6 +141,7 @@ class QdrantEmbeddedStore:
         filter_conditions: dict | None = None,
     ) -> list[dict]:
         try:
+            qdrant_filter = self._build_filter(filter_conditions)
             prefetch_list = []
 
             prefetch_list.append(
@@ -115,6 +149,7 @@ class QdrantEmbeddedStore:
                     query=query_dense,
                     using="dense",
                     limit=limit * 3,
+                    filter=qdrant_filter,
                 )
             )
 
@@ -124,6 +159,7 @@ class QdrantEmbeddedStore:
                         query=query_sparse,
                         using="sparse",
                         limit=limit * 3,
+                        filter=qdrant_filter,
                     )
                 )
 
@@ -133,6 +169,7 @@ class QdrantEmbeddedStore:
                         query=query_colbert,
                         using="colbert",
                         limit=limit * 3,
+                        filter=qdrant_filter,
                     )
                 )
 
@@ -160,8 +197,6 @@ class QdrantEmbeddedStore:
 
     def delete(self, collection_name: str, point_ids: list[str]) -> None:
         try:
-            from qdrant_client.models import PointIdsList
-
             self.client.delete(
                 collection_name=collection_name,
                 points_selector=PointIdsList(points=point_ids),
@@ -175,8 +210,8 @@ class QdrantEmbeddedStore:
             info = self.client.get_collection(collection_name=collection_name)
             return {
                 "name": collection_name,
-                "vectors_count": info.vectors_count,
-                "points_count": info.points_count,
+                "vectors_count": info.indexed_vectors_count or 0,
+                "points_count": info.points_count or 0,
                 "status": str(info.status),
                 "optimizer_status": str(info.optimizer_status),
             }

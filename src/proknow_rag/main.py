@@ -44,7 +44,7 @@ def cmd_index(args: argparse.Namespace) -> None:
     )
 
     elapsed = time.perf_counter() - start
-    print(f"\n索引构建完成")
+    print("\n索引构建完成")
     print(f"  Collection:  {result.collection_name}")
     print(f"  索引文档数:  {result.num_indexed}")
     print(f"  失败文档数:  {len(result.failed_ids)}")
@@ -113,7 +113,7 @@ def cmd_search(args: argparse.Namespace) -> None:
         print(f"  {content[:300]}{'...' if len(content) > 300 else ''}")
 
 
-def cmd_info(args: argparse.Namespace) -> None:
+def cmd_info(_args: argparse.Namespace) -> None:
     settings = Settings()
 
     print("=" * 50)
@@ -165,7 +165,7 @@ def cmd_info(args: argparse.Namespace) -> None:
     if reranker_model_path.exists():
         print(f"  BGE Reranker:    模型文件存在 ({reranker_model_path})")
     else:
-        print(f"  BGE Reranker:    模型文件不存在 (请运行 scripts/download_models.py)")
+        print("  BGE Reranker:    模型文件不存在 (请运行 scripts/download_models.py)")
 
     print("\n[Settings]")
     print(f"  Qdrant Storage: {settings.qdrant_storage_path}")
