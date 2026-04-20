@@ -9,7 +9,7 @@ import structlog
 
 from proknow_rag.common.config import Settings
 from proknow_rag.common.exceptions import ProKnowRAGError
-from proknow_rag.common.gpu_monitor import get_gpu_memory_info
+from proknow_rag.common.gpu_monitor import get_gpu_memory_info, get_gpu_name
 from proknow_rag.common.logging_config import setup_logging
 from proknow_rag.data_preparation.manager import DataManager
 from proknow_rag.index_construction.embedder import BGEM3Embedder
@@ -123,8 +123,10 @@ def cmd_info(args: argparse.Namespace) -> None:
     print("\n[GPU]")
     gpu_info = get_gpu_memory_info()
     if gpu_info["total_mb"] > 0:
+        gpu_name = get_gpu_name()
+        print(f"  Name:      {gpu_name}")
         print(f"  Total:     {gpu_info['total_mb']} MB")
-        print(f"  Allocated: {gpu_info['allocated_mb']} MB")
+        print(f"  Used:      {gpu_info['used_mb']} MB")
         print(f"  Free:      {gpu_info['free_mb']} MB")
     else:
         print("  GPU 不可用")
@@ -169,6 +171,7 @@ def cmd_info(args: argparse.Namespace) -> None:
     print(f"  Qdrant Storage: {settings.qdrant_storage_path}")
     print(f"  BGE-M3 Model:   {settings.bge_m3_model_path}")
     print(f"  BGE Reranker:   {settings.bge_reranker_model_path}")
+    print(f"  Data Dir:       {settings.data_dir}")
     print(f"  HF Endpoint:    {settings.hf_endpoint}")
 
     print("\n" + "=" * 50)

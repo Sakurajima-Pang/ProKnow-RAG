@@ -9,7 +9,7 @@ import gradio as gr
 
 from proknow_rag.common.config import Settings
 from proknow_rag.common.exceptions import ProKnowRAGError
-from proknow_rag.common.gpu_monitor import get_gpu_memory_info
+from proknow_rag.common.gpu_monitor import get_gpu_memory_info, get_gpu_name
 from proknow_rag.common.logging_config import setup_logging
 from proknow_rag.data_preparation.manager import DataManager
 from proknow_rag.index_construction.index_builder import IndexBuilder
@@ -46,21 +46,15 @@ def get_system_info() -> str:
 
     gpu_info = get_gpu_memory_info()
     if gpu_info["total_mb"] > 0:
-        used_pct = gpu_info["allocated_mb"] / gpu_info["total_mb"] * 100
+        used_pct = gpu_info["used_mb"] / gpu_info["total_mb"] * 100
         bar_len = 20
         filled = int(bar_len * used_pct / 100)
         bar = "█" * filled + "░" * (bar_len - filled)
+        gpu_name = get_gpu_name()
         lines.append("### GPU")
-        gpu_name = "Unknown"
-        try:
-            import torch
-            if torch.cuda.is_available():
-                gpu_name = torch.cuda.get_device_name(0)
-        except ImportError:
-            pass
         lines.append(f"- **型号**: {gpu_name}")
         lines.append(f"- **总显存**: {gpu_info['total_mb']} MB")
-        lines.append(f"- **已用**: {gpu_info['allocated_mb']} MB ({used_pct:.1f}%)")
+        lines.append(f"- **已用**: {gpu_info['used_mb']} MB ({used_pct:.1f}%)")
         lines.append(f"- **可用**: {gpu_info['free_mb']} MB")
         lines.append(f"- `[{bar}] {used_pct:.1f}%`")
     else:
@@ -89,19 +83,29 @@ def get_system_info() -> str:
         size_mb = sum(f.stat().st_size for f in bge_m3_path.rglob("*") if f.is_file()) / (1024 * 1024)
         lines.append(f"- **BGE-M3 Embedder**: ✅ 已就绪 ({size_mb:.0f} MB)")
     else:
-        lines.append("- **BGE-M3 Embedder**: ❌ 模型文件不存在")
+        lines.append(f"- **BGE-M3 Embedder**: ❌ 模型文件不存在 (`{bge_m3_path}`)")
 
     reranker_path = Path(settings.bge_reranker_model_path)
     if reranker_path.exists():
         size_mb = sum(f.stat().st_size for f in reranker_path.rglob("*") if f.is_file()) / (1024 * 1024)
         lines.append(f"- **BGE-Reranker-v2-m3**: ✅ 已就绪 ({size_mb:.0f} MB)")
     else:
-        lines.append("- **BGE-Reranker-v2-m3**: ❌ 模型文件不存在")
+        lines.append(f"- **BGE-Reranker-v2-m3**: ❌ 模型文件不存在 (`{reranker_path}`)")
+    lines.append("")
+
+    data_dir = Path(settings.data_dir)
+    if data_dir.exists():
+        file_count = sum(1 for f in data_dir.rglob("*") if f.is_file())
+        lines.append(f"- **数据目录**: ✅ 存在 ({file_count} 文件)")
+    else:
+        lines.append(f"- **数据目录**: ⚠️ 不存在 (`{data_dir}`)")
     lines.append("")
 
     lines.append("### 配置")
     lines.append(f"- Qdrant 存储: `{settings.qdrant_storage_path}`")
     lines.append(f"- BGE-M3 路径: `{settings.bge_m3_model_path}`")
+    lines.append(f"- Reranker 路径: `{settings.bge_reranker_model_path}`")
+    lines.append(f"- 数据目录: `{settings.data_dir}`")
     lines.append(f"- HF 镜像: `{settings.hf_endpoint}`")
 
     return "\n".join(lines)
@@ -111,10 +115,13 @@ def do_index(directory: str, collection: str, batch_size: int) -> str:
     if not directory.strip():
         return "❌ 请输入目录路径"
     dir_path = Path(directory.strip())
+    if not dir_path.is_absolute():
+        settings = Settings()
+        dir_path = Path(settings.data_dir) / directory.strip()
     if not dir_path.exists():
-        return f"❌ 目录不存在: {directory}"
+        return f"❌ 目录不存在: `{dir_path}`\n\n💡 请检查路径是否正确，或先创建目录并放入数据文件"
     if not dir_path.is_dir():
-        return f"❌ 不是目录: {directory}"
+        return f"❌ 不是目录: `{dir_path}`"
 
     try:
         settings = Settings()
@@ -262,6 +269,9 @@ def get_logs() -> str:
 
 
 def build_gui() -> gr.Blocks:
+    settings = Settings()
+    default_data_dir = settings.data_dir
+
     with gr.Blocks(
         title="ProKnow-RAG 管理界面",
         theme=gr.themes.Soft(),
@@ -283,7 +293,7 @@ def build_gui() -> gr.Blocks:
                 with gr.Row():
                     with gr.Column(scale=2):
                         gr.Markdown("### 构建索引")
-                        index_dir = gr.Textbox(label="数据目录路径", placeholder="例如: ./data/raw 或 D:\\docs", value="./data/raw")
+                        index_dir = gr.Textbox(label="数据目录路径", placeholder="例如: D:\\docs 或绝对路径", value=default_data_dir)
                         with gr.Row():
                             index_collection = gr.Textbox(label="Collection 名称", value="proknow_rag")
                             index_batch = gr.Slider(label="批处理大小", minimum=2, maximum=32, value=12, step=2)

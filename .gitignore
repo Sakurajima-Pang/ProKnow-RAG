@@ -4,7 +4,8 @@
 !.env.example
 
 # 数据目录
-data/raw/
+data/raw/*
+!data/raw/.gitkeep
 data/parsed/
 data/chunked/
 
@@ -54,3 +55,6 @@ logs/
 
 # 缓存
 .cache/
+
+# SonarQube
+.scannerwork/
