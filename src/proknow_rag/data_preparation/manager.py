@@ -1,7 +1,6 @@
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
 
 import structlog
 
@@ -59,7 +58,7 @@ class DataManager:
 
         for chunk in chunks:
             if not chunk.doc_hash:
-                chunk.doc_hash = hashlib.md5(chunk.content.encode("utf-8")).hexdigest()
+                chunk.doc_hash = hashlib.sha256(chunk.content.encode("utf-8")).hexdigest()
 
         self._processed_hashes.add(doc_hash)
         if self._processed_cache_path:
@@ -68,7 +67,7 @@ class DataManager:
         logger.info("文件处理完成", file_path=str(path), documents=len(documents), chunks=len(chunks))
         return chunks
 
-    def process_directory(self, dir_path: str, base_dir: str = "./data", recursive: bool = True) -> list[PreparedChunk]:
+    def process_directory(self, dir_path: str, recursive: bool = True) -> list[PreparedChunk]:
         path = Path(dir_path).resolve()
         if not path.exists() or not path.is_dir():
             raise DataPreparationError(f"目录不存在: {dir_path}")
@@ -78,7 +77,7 @@ class DataManager:
 
         for file_path in files:
             try:
-                chunks = self.process_file(str(file_path), base_dir)
+                chunks = self.process_file(str(file_path), str(path))
                 all_chunks.extend(chunks)
             except (ParsingError, ChunkingError, DataPreparationError) as e:
                 logger.warning("文件处理失败，跳过", file_path=str(file_path), error=str(e))
@@ -139,7 +138,7 @@ class DataManager:
 
     @staticmethod
     def _compute_file_hash(file_path: str) -> str:
-        hasher = hashlib.md5()
+        hasher = hashlib.sha256()
         with open(file_path, "rb") as f:
             for chunk in iter(lambda: f.read(8192), b""):
                 hasher.update(chunk)
@@ -154,7 +153,8 @@ class DataManager:
                     self._processed_hashes = set(data)
                 elif isinstance(data, dict) and "hashes" in data:
                     self._processed_hashes = set(data["hashes"])
-            except Exception:
+            except Exception as e:
+                logger.warning("缓存加载失败", error=str(e))
                 self._processed_hashes = set()
 
     def _save_processed_cache(self, cache_path: str):

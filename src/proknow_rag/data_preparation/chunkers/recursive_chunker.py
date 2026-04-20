@@ -37,7 +37,7 @@ class RecursiveChunker(BaseChunker):
         texts = splitter.split_text(doc.content)
         chunks = []
         for i, text in enumerate(texts):
-            doc_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
             metadata = {**doc.metadata, "chunk_index": i, "total_chunks": len(texts)}
             chunks.append(PreparedChunk(
                 content=text,

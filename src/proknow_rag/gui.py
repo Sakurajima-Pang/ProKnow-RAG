@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import sys
 import time
 import traceback
 from pathlib import Path
@@ -13,7 +12,6 @@ from proknow_rag.common.exceptions import ProKnowRAGError
 from proknow_rag.common.gpu_monitor import get_gpu_memory_info
 from proknow_rag.common.logging_config import setup_logging
 from proknow_rag.data_preparation.manager import DataManager
-from proknow_rag.index_construction.embedder import BGEM3Embedder
 from proknow_rag.index_construction.index_builder import IndexBuilder
 from proknow_rag.index_construction.qdrant_store import QdrantEmbeddedStore
 from proknow_rag.retrieval.compressor import ContextCompressor
@@ -53,7 +51,14 @@ def get_system_info() -> str:
         filled = int(bar_len * used_pct / 100)
         bar = "█" * filled + "░" * (bar_len - filled)
         lines.append("### GPU")
-        lines.append(f"- **型号**: NVIDIA RTX 3080")
+        gpu_name = "Unknown"
+        try:
+            import torch
+            if torch.cuda.is_available():
+                gpu_name = torch.cuda.get_device_name(0)
+        except ImportError:
+            pass
+        lines.append(f"- **型号**: {gpu_name}")
         lines.append(f"- **总显存**: {gpu_info['total_mb']} MB")
         lines.append(f"- **已用**: {gpu_info['allocated_mb']} MB ({used_pct:.1f}%)")
         lines.append(f"- **可用**: {gpu_info['free_mb']} MB")
@@ -86,7 +91,7 @@ def get_system_info() -> str:
     else:
         lines.append("- **BGE-M3 Embedder**: ❌ 模型文件不存在")
 
-    reranker_path = bge_m3_path.parent / "bge-reranker-v2-m3"
+    reranker_path = Path(settings.bge_reranker_model_path)
     if reranker_path.exists():
         size_mb = sum(f.stat().st_size for f in reranker_path.rglob("*") if f.is_file()) / (1024 * 1024)
         lines.append(f"- **BGE-Reranker-v2-m3**: ✅ 已就绪 ({size_mb:.0f} MB)")

@@ -1,9 +1,13 @@
 from pathlib import Path
 
+import logging
+
 from pypdf import PdfReader
 
 from proknow_rag.data_preparation.base import BaseParser, Document
 from proknow_rag.common.exceptions import ParsingError
+
+logger = logging.getLogger(__name__)
 
 
 class PdfParser(BaseParser):
@@ -54,6 +58,6 @@ class PdfParser(BaseParser):
                     rows.append(" | ".join(cells))
                 if rows:
                     tables.append("\n".join(rows))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("表格提取失败", error=str(e))
         return tables

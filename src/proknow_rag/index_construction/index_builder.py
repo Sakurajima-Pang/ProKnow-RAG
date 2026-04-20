@@ -1,7 +1,8 @@
 import hashlib
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
+import structlog
 from pydantic import BaseModel
 
 from proknow_rag.common.config import Settings
@@ -11,6 +12,8 @@ from proknow_rag.index_construction.cache import EmbeddingCache
 from proknow_rag.index_construction.embedder import BGEM3Embedder
 from proknow_rag.index_construction.metadata_manager import MetadataManager
 from proknow_rag.index_construction.qdrant_store import QdrantEmbeddedStore
+
+logger = structlog.get_logger(__name__)
 
 
 class IndexingResult(BaseModel):
@@ -26,7 +29,7 @@ class IndexBuilder:
         self.embedder = BGEM3Embedder(self.settings)
         self.store = QdrantEmbeddedStore(self.settings)
         self.metadata_manager = MetadataManager()
-        self.cache = EmbeddingCache()
+        self.cache = EmbeddingCache(self.settings)
 
     def _compute_chunk_hash(self, chunk: PreparedChunk) -> str:
         raw = f"{chunk.content}|{chunk.source}|{chunk.chunk_type}"
@@ -144,8 +147,9 @@ class IndexBuilder:
                         "payload": processed_metadata,
                     }
                 )
-            except Exception:
+            except Exception as e:
                 failed_ids.append(chunk_hash)
+                logger.warning("点构建失败", chunk_hash=chunk_hash, error=str(e))
 
         if points:
             try:
@@ -156,7 +160,7 @@ class IndexBuilder:
         for chunk_hash, _ in to_index:
             self.metadata_manager.set_version(
                 chunk_hash,
-                {"indexed": True, "collection": collection_name, "timestamp": datetime.utcnow().isoformat()},
+                {"indexed": True, "collection": collection_name, "timestamp": datetime.now(timezone.utc).isoformat()},
             )
 
         return IndexingResult(
@@ -167,4 +171,4 @@ class IndexBuilder:
         )
 
     def _generate_version(self) -> str:
-        return datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        return datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")

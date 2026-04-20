@@ -39,7 +39,7 @@ class AstChunker(BaseChunker):
 
     def _function_to_chunk(self, doc: Document) -> PreparedChunk:
         content = doc.content
-        doc_hash = hashlib.md5(content.encode("utf-8")).hexdigest()
+        doc_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
         return PreparedChunk(
             content=content,
             metadata={
@@ -58,7 +58,7 @@ class AstChunker(BaseChunker):
         class_content = doc.content
 
         if len(class_content) <= self.max_class_size:
-            doc_hash = hashlib.md5(class_content.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(class_content.encode("utf-8")).hexdigest()
             return [PreparedChunk(
                 content=class_content,
                 metadata={
@@ -83,7 +83,7 @@ class AstChunker(BaseChunker):
         try:
             tree = ast.parse(source)
         except SyntaxError:
-            doc_hash = hashlib.md5(source.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(source.encode("utf-8")).hexdigest()
             return [PreparedChunk(
                 content=source,
                 metadata={**doc.metadata, "chunk_index": 0, "total_chunks": 1},
@@ -103,7 +103,7 @@ class AstChunker(BaseChunker):
                 break
 
         if class_node is None:
-            doc_hash = hashlib.md5(source.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(source.encode("utf-8")).hexdigest()
             return [PreparedChunk(
                 content=source,
                 metadata={**doc.metadata, "chunk_index": 0, "total_chunks": 1},
@@ -115,7 +115,7 @@ class AstChunker(BaseChunker):
         if class_header_end > 0:
             header_lines = lines[:class_header_end]
             header_text = "\n".join(header_lines)
-            doc_hash = hashlib.md5(header_text.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(header_text.encode("utf-8")).hexdigest()
             chunks.append(PreparedChunk(
                 content=header_text,
                 metadata={
@@ -132,7 +132,7 @@ class AstChunker(BaseChunker):
             if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 method_lines = lines[item.lineno - 1: item.end_lineno]
                 method_text = "\n".join(method_lines)
-                doc_hash = hashlib.md5(method_text.encode("utf-8")).hexdigest()
+                doc_hash = hashlib.sha256(method_text.encode("utf-8")).hexdigest()
 
                 method_signature = self._get_signature(item, lines)
                 method_docstring = ast.get_docstring(item) or ""
@@ -159,7 +159,7 @@ class AstChunker(BaseChunker):
                 other_lines = lines[item.lineno - 1: item.end_lineno] if hasattr(item, "end_lineno") else []
                 if other_lines:
                     other_text = "\n".join(other_lines)
-                    doc_hash = hashlib.md5(other_text.encode("utf-8")).hexdigest()
+                    doc_hash = hashlib.sha256(other_text.encode("utf-8")).hexdigest()
                     chunks.append(PreparedChunk(
                         content=other_text,
                         metadata={
@@ -179,7 +179,7 @@ class AstChunker(BaseChunker):
         return chunks
 
     def _docstring_to_chunk(self, doc: Document) -> PreparedChunk:
-        doc_hash = hashlib.md5(doc.content.encode("utf-8")).hexdigest()
+        doc_hash = hashlib.sha256(doc.content.encode("utf-8")).hexdigest()
         return PreparedChunk(
             content=doc.content,
             metadata={
@@ -193,7 +193,7 @@ class AstChunker(BaseChunker):
         )
 
     def _generic_chunk(self, doc: Document) -> list[PreparedChunk]:
-        doc_hash = hashlib.md5(doc.content.encode("utf-8")).hexdigest()
+        doc_hash = hashlib.sha256(doc.content.encode("utf-8")).hexdigest()
         return [PreparedChunk(
             content=doc.content,
             metadata={**doc.metadata, "chunk_index": 0, "total_chunks": 1},

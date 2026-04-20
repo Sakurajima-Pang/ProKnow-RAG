@@ -35,7 +35,7 @@ class SemanticChunker(BaseChunker):
     def _chunk_document(self, doc: Document) -> list[PreparedChunk]:
         sentences = self._split_sentences(doc.content)
         if len(sentences) <= 1:
-            doc_hash = hashlib.md5(doc.content.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(doc.content.encode("utf-8")).hexdigest()
             return [PreparedChunk(
                 content=doc.content,
                 metadata={**doc.metadata, "chunk_index": 0, "total_chunks": 1},
@@ -103,7 +103,7 @@ class SemanticChunker(BaseChunker):
                 sub_chunks = self._split_by_size(chunk_text, doc, len(chunks))
                 chunks.extend(sub_chunks)
             else:
-                doc_hash = hashlib.md5(chunk_text.encode("utf-8")).hexdigest()
+                doc_hash = hashlib.sha256(chunk_text.encode("utf-8")).hexdigest()
                 chunks.append(PreparedChunk(
                     content=chunk_text,
                     metadata={**doc.metadata, "chunk_index": len(chunks), "sentence_range": (start, end)},
@@ -116,7 +116,7 @@ class SemanticChunker(BaseChunker):
 
         if start < len(sentences):
             remaining = " ".join(sentences[start:])
-            doc_hash = hashlib.md5(remaining.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(remaining.encode("utf-8")).hexdigest()
             chunks.append(PreparedChunk(
                 content=remaining,
                 metadata={**doc.metadata, "chunk_index": len(chunks), "sentence_range": (start, len(sentences))},
@@ -137,7 +137,7 @@ class SemanticChunker(BaseChunker):
 
         for sentence in sentences:
             if len(current_text) + len(sentence) > self.max_chunk_size and current_text:
-                doc_hash = hashlib.md5(current_text.encode("utf-8")).hexdigest()
+                doc_hash = hashlib.sha256(current_text.encode("utf-8")).hexdigest()
                 chunks.append(PreparedChunk(
                     content=current_text.strip(),
                     metadata={**doc.metadata, "chunk_index": len(chunks)},
@@ -151,7 +151,7 @@ class SemanticChunker(BaseChunker):
                 current_text = current_text + " " + sentence if current_text else sentence
 
         if current_text.strip():
-            doc_hash = hashlib.md5(current_text.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(current_text.encode("utf-8")).hexdigest()
             chunks.append(PreparedChunk(
                 content=current_text.strip(),
                 metadata={**doc.metadata, "chunk_index": len(chunks)},
@@ -176,7 +176,7 @@ class SemanticChunker(BaseChunker):
                 split_pos = self.max_chunk_size
 
             part = text[:split_pos + 1].strip()
-            doc_hash = hashlib.md5(part.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(part.encode("utf-8")).hexdigest()
             chunks.append(PreparedChunk(
                 content=part,
                 metadata={**doc.metadata, "chunk_index": start_index + len(chunks)},
@@ -187,7 +187,7 @@ class SemanticChunker(BaseChunker):
             text = text[split_pos + 1:]
 
         if text.strip():
-            doc_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
             chunks.append(PreparedChunk(
                 content=text.strip(),
                 metadata={**doc.metadata, "chunk_index": start_index + len(chunks)},

@@ -55,7 +55,7 @@ class LlmChunker(BaseChunker):
             try:
                 chunk = PreparedChunk(**item)
                 if not chunk.doc_hash:
-                    chunk.doc_hash = hashlib.md5(chunk.content.encode("utf-8")).hexdigest()
+                    chunk.doc_hash = hashlib.sha256(chunk.content.encode("utf-8")).hexdigest()
                 chunks.append(chunk)
             except Exception as e:
                 raise ChunkingError(f"第{i}个chunk验证失败: {e}")

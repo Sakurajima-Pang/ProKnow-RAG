@@ -32,7 +32,7 @@ class StructureChunker(BaseChunker):
         heading_level = doc.metadata.get(self.level_metadata_key, 0)
 
         if len(doc.content) <= self.max_chunk_size:
-            doc_hash = hashlib.md5(doc.content.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(doc.content.encode("utf-8")).hexdigest()
             return [PreparedChunk(
                 content=doc.content,
                 metadata={
@@ -57,7 +57,7 @@ class StructureChunker(BaseChunker):
 
         for para in paragraphs:
             if len(current_text) + len(para) > self.max_chunk_size and current_text:
-                doc_hash = hashlib.md5(current_text.encode("utf-8")).hexdigest()
+                doc_hash = hashlib.sha256(current_text.encode("utf-8")).hexdigest()
                 chunks.append(PreparedChunk(
                     content=current_text.strip(),
                     metadata={
@@ -81,7 +81,7 @@ class StructureChunker(BaseChunker):
                 current_text = current_text + "\n\n" + para if current_text else para
 
         if current_text.strip():
-            doc_hash = hashlib.md5(current_text.encode("utf-8")).hexdigest()
+            doc_hash = hashlib.sha256(current_text.encode("utf-8")).hexdigest()
             chunks.append(PreparedChunk(
                 content=current_text.strip(),
                 metadata={

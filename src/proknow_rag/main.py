@@ -148,10 +148,8 @@ def cmd_info(args: argparse.Namespace) -> None:
         print(f"  Qdrant 连接失败: {e}")
 
     print("\n[Models]")
-    embedder_loaded = False
     try:
         embedder = BGEM3Embedder(settings)
-        embedder_loaded = True
         print(f"  BGE-M3 Embedder: 已加载 (GPU: {embedder.use_gpu})")
         del embedder
         import gc, torch
@@ -161,8 +159,7 @@ def cmd_info(args: argparse.Namespace) -> None:
     except Exception as e:
         print(f"  BGE-M3 Embedder: 未加载 ({e})")
 
-    reranker_loaded = False
-    reranker_model_path = Path(settings.bge_m3_model_path).parent / "bge-reranker-v2-m3"
+    reranker_model_path = Path(settings.bge_reranker_model_path)
     if reranker_model_path.exists():
         print(f"  BGE Reranker:    模型文件存在 ({reranker_model_path})")
     else:
@@ -171,6 +168,7 @@ def cmd_info(args: argparse.Namespace) -> None:
     print("\n[Settings]")
     print(f"  Qdrant Storage: {settings.qdrant_storage_path}")
     print(f"  BGE-M3 Model:   {settings.bge_m3_model_path}")
+    print(f"  BGE Reranker:   {settings.bge_reranker_model_path}")
     print(f"  HF Endpoint:    {settings.hf_endpoint}")
 
     print("\n" + "=" * 50)
@@ -194,7 +192,7 @@ def build_parser() -> argparse.ArgumentParser:
     search_parser.add_argument("--top-k", type=int, default=20, help="检索返回数量")
     search_parser.add_argument("--rerank-top-k", type=int, default=5, help="重排序返回数量")
 
-    info_parser = subparsers.add_parser("info", help="显示系统信息")
+    subparsers.add_parser("info", help="显示系统信息")
 
     gui_parser = subparsers.add_parser("gui", help="启动 GUI 管理界面")
     gui_parser.add_argument("--port", type=int, default=7860, help="服务端口")
