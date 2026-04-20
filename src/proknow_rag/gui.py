@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 
 _log_lines: list[str] = []
 
+_cached_index_builder: IndexBuilder | None = None
+_cached_searcher: HybridSearcher | None = None
+_cached_reranker: BGEReranker | None = None
+
 
 class LogHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
@@ -38,6 +42,23 @@ def _setup_log_capture() -> None:
     handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s", datefmt="%H:%M:%S"))
     logging.getLogger("proknow_rag").addHandler(handler)
     logging.getLogger().addHandler(handler)
+
+
+def _get_index_builder(settings: Settings) -> IndexBuilder:
+    global _cached_index_builder
+    if _cached_index_builder is None:
+        logger.info("首次加载 IndexBuilder（含 BGE-M3 模型）...")
+        _cached_index_builder = IndexBuilder(settings)
+    return _cached_index_builder
+
+
+def _get_search_components(settings: Settings) -> tuple[HybridSearcher, BGEReranker]:
+    global _cached_searcher, _cached_reranker
+    if _cached_searcher is None:
+        logger.info("首次加载检索组件（含 BGE-M3 + Reranker 模型）...")
+        _cached_searcher = HybridSearcher(settings)
+        _cached_reranker = BGEReranker(settings=settings)
+    return _cached_searcher, _cached_reranker
 
 
 def get_system_info() -> str:
@@ -78,19 +99,24 @@ def get_system_info() -> str:
     lines.append("")
 
     lines.append("### 模型状态")
+    embedder_status = "✅ 已加载（内存中）" if _cached_index_builder is not None else "⏳ 未加载（首次索引时加载）"
+    lines.append(f"- **BGE-M3 Embedder**: {embedder_status}")
+    reranker_status = "✅ 已加载（内存中）" if _cached_reranker is not None else "⏳ 未加载（首次检索时加载）"
+    lines.append(f"- **BGE-Reranker**: {reranker_status}")
+
     bge_m3_path = Path(settings.bge_m3_model_path)
     if bge_m3_path.exists():
         size_mb = sum(f.stat().st_size for f in bge_m3_path.rglob("*") if f.is_file()) / (1024 * 1024)
-        lines.append(f"- **BGE-M3 Embedder**: ✅ 已就绪 ({size_mb:.0f} MB)")
+        lines.append(f"- **BGE-M3 磁盘**: ✅ ({size_mb:.0f} MB)")
     else:
-        lines.append(f"- **BGE-M3 Embedder**: ❌ 模型文件不存在 (`{bge_m3_path}`)")
+        lines.append(f"- **BGE-M3 磁盘**: ❌ 不存在 (`{bge_m3_path}`)")
 
     reranker_path = Path(settings.bge_reranker_model_path)
     if reranker_path.exists():
         size_mb = sum(f.stat().st_size for f in reranker_path.rglob("*") if f.is_file()) / (1024 * 1024)
-        lines.append(f"- **BGE-Reranker-v2-m3**: ✅ 已就绪 ({size_mb:.0f} MB)")
+        lines.append(f"- **Reranker 磁盘**: ✅ ({size_mb:.0f} MB)")
     else:
-        lines.append(f"- **BGE-Reranker-v2-m3**: ❌ 模型文件不存在 (`{reranker_path}`)")
+        lines.append(f"- **Reranker 磁盘**: ❌ 不存在 (`{reranker_path}`)")
     lines.append("")
 
     data_dir = Path(settings.data_dir)
@@ -126,7 +152,7 @@ def do_index(directory: str, collection: str, batch_size: int) -> str:
     try:
         settings = Settings()
         data_manager = DataManager()
-        index_builder = IndexBuilder(settings)
+        index_builder = _get_index_builder(settings)
 
         start = time.perf_counter()
         chunks = data_manager.process_directory(str(dir_path))
@@ -174,8 +200,7 @@ def do_search(query: str, collection: str, top_k: int, rerank_top_k: int) -> tup
             "bm25": strategy.bm25_weight,
         }
 
-        searcher = HybridSearcher(settings)
-        reranker = BGEReranker(settings=settings)
+        searcher, reranker = _get_search_components(settings)
         compressor = ContextCompressor()
 
         search_start = time.perf_counter()
