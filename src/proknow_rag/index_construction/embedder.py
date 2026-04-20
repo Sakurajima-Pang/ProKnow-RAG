@@ -24,9 +24,6 @@ class BGEM3Embedder:
                 model_path,
                 use_fp16=True,
                 devices="cuda",
-                return_dense=True,
-                return_sparse=True,
-                return_colbert_vecs=True,
             )
             self.model.model.to("cuda")
             self.model.model.eval()
@@ -36,9 +33,6 @@ class BGEM3Embedder:
                 model_path,
                 use_fp16=False,
                 devices="cpu",
-                return_dense=True,
-                return_sparse=True,
-                return_colbert_vecs=True,
             )
             logger.info("BGE-M3 loaded on CPU (fp32)")
 
@@ -81,20 +75,19 @@ class BGEM3Embedder:
 
     def embed(self, texts: list[str], batch_size: int = 12) -> dict:
         if not texts:
-            return {"dense_vectors": [], "sparse_vectors": [], "colbert_vectors": []}
+            return {"dense_vectors": [], "sparse_vectors": []}
         effective_batch_size = self._compute_batch_size(batch_size)
         try:
             result = self.model.encode(
                 texts,
                 return_dense=True,
                 return_sparse=True,
-                return_colbert_vecs=True,
+                return_colbert_vecs=False,
                 batch_size=effective_batch_size,
             )
             return {
                 "dense_vectors": result["dense_vecs"],
                 "sparse_vectors": result["lexical_weights"],
-                "colbert_vectors": result["colbert_vecs"],
             }
         except RuntimeError as e:
             if "out of memory" in str(e).lower() and self._use_gpu:
@@ -109,13 +102,12 @@ class BGEM3Embedder:
                         texts,
                         return_dense=True,
                         return_sparse=True,
-                        return_colbert_vecs=True,
+                        return_colbert_vecs=False,
                         batch_size=max(1, effective_batch_size // 4),
                     )
                     return {
                         "dense_vectors": result["dense_vecs"],
                         "sparse_vectors": result["lexical_weights"],
-                        "colbert_vectors": result["colbert_vecs"],
                     }
                 except Exception as retry_err:
                     raise EmbeddingError(f"GPU OOM 后重试失败: {retry_err}") from retry_err

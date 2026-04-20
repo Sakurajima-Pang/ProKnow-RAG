@@ -4,8 +4,6 @@ from pathlib import Path
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
-    MultiVectorComparator,
-    MultiVectorConfig,
     PointIdsList,
     PointStruct,
     Prefetch,
@@ -64,13 +62,6 @@ class QdrantEmbeddedStore:
                 collection_name=name,
                 vectors_config={
                     "dense": VectorParams(size=1024, distance=Distance.COSINE),
-                    "colbert": VectorParams(
-                        size=128,
-                        distance=Distance.COSINE,
-                        multivector_config=MultiVectorConfig(
-                            comparator=MultiVectorComparator.MAX_SIM
-                        ),
-                    ),
                 },
                 sparse_vectors_config={
                     "sparse": SparseVectorParams(index=SparseIndexParams(on_disk=False))
@@ -106,8 +97,6 @@ class QdrantEmbeddedStore:
                 named_vectors = {}
                 if "dense" in vector_data:
                     named_vectors["dense"] = vector_data["dense"]
-                if "colbert" in vector_data:
-                    named_vectors["colbert"] = vector_data["colbert"]
                 if sparse_vector is not None:
                     named_vectors["sparse"] = sparse_vector
 
@@ -135,7 +124,6 @@ class QdrantEmbeddedStore:
         collection_name: str,
         query_dense: list[float],
         query_sparse: SparseVector | None = None,
-        query_colbert: list[list[float]] | None = None,
         limit: int = 10,
         score_threshold: float | None = None,
         filter_conditions: dict | None = None,
@@ -158,16 +146,6 @@ class QdrantEmbeddedStore:
                     Prefetch(
                         query=query_sparse,
                         using="sparse",
-                        limit=limit * 3,
-                        filter=qdrant_filter,
-                    )
-                )
-
-            if query_colbert is not None:
-                prefetch_list.append(
-                    Prefetch(
-                        query=query_colbert,
-                        using="colbert",
                         limit=limit * 3,
                         filter=qdrant_filter,
                     )

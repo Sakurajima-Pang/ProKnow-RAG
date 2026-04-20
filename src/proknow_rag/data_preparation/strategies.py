@@ -41,7 +41,7 @@ _DEFAULT_STRATEGIES: dict[str, dict[str, Any]] = {
     ".pdf": {
         "parser": "pdf_parser",
         "chunker": "recursive_chunker",
-        "config": {"chunk_size": 500, "overlap": 100},
+        "config": {"chunk_size": 1000, "overlap": 150},
     },
     ".py": {
         "parser": "code_parser",

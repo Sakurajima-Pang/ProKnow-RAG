@@ -196,7 +196,6 @@ def do_search(query: str, collection: str, top_k: int, rerank_top_k: int) -> tup
         weights = {
             "dense": strategy.dense_weight,
             "sparse": strategy.sparse_weight,
-            "colbert": strategy.colbert_weight,
             "bm25": strategy.bm25_weight,
         }
 
@@ -214,7 +213,7 @@ def do_search(query: str, collection: str, top_k: int, rerank_top_k: int) -> tup
         search_elapsed = time.perf_counter() - search_start
 
         if not results:
-            meta = f"查询: `{sanitized}`\n路由: dense={weights['dense']:.2f} sparse={weights['sparse']:.2f} colbert={weights['colbert']:.2f}\n⚠️ 未找到相关结果"
+            meta = f"查询: `{sanitized}`\n路由: dense={weights['dense']:.2f} sparse={weights['sparse']:.2f}\n⚠️ 未找到相关结果"
             return meta, ""
 
         rerank_start = time.perf_counter()
@@ -223,7 +222,7 @@ def do_search(query: str, collection: str, top_k: int, rerank_top_k: int) -> tup
 
         meta_lines = [
             f"查询: `{sanitized}`",
-            f"路由: dense={weights['dense']:.2f} sparse={weights['sparse']:.2f} colbert={weights['colbert']:.2f} bm25={weights['bm25']:.2f}",
+            f"路由: dense={weights['dense']:.2f} sparse={weights['sparse']:.2f} bm25={weights['bm25']:.2f}",
             f"检索: {search_elapsed*1000:.1f}ms | 重排: {rerank_elapsed*1000:.1f}ms | 结果: {len(reranked)} 条",
         ]
         meta = "\n".join(meta_lines)

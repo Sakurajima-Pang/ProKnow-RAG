@@ -6,18 +6,17 @@ from proknow_rag.retrieval.hybrid_search import WEIGHT_PRESETS
 
 
 class RetrievalStrategy(BaseModel):
-    dense_weight: float = 0.5
-    sparse_weight: float = 0.3
-    colbert_weight: float = 0.2
+    dense_weight: float = 0.6
+    sparse_weight: float = 0.4
     bm25_weight: float = 0.0
     doc_type_filter: str | None = None
 
 
 STRATEGY_PRESETS = {
-    "paper": RetrievalStrategy(dense_weight=0.6, sparse_weight=0.3, colbert_weight=0.1, bm25_weight=0.0, doc_type_filter="paper"),
-    "doc": RetrievalStrategy(dense_weight=0.5, sparse_weight=0.3, colbert_weight=0.2, bm25_weight=0.0, doc_type_filter="doc"),
-    "code": RetrievalStrategy(dense_weight=0.3, sparse_weight=0.4, colbert_weight=0.3, bm25_weight=0.0, doc_type_filter="code"),
-    "general": RetrievalStrategy(dense_weight=0.5, sparse_weight=0.3, colbert_weight=0.2, bm25_weight=0.0),
+    "paper": RetrievalStrategy(dense_weight=0.65, sparse_weight=0.35, bm25_weight=0.0, doc_type_filter="paper"),
+    "doc": RetrievalStrategy(dense_weight=0.6, sparse_weight=0.4, bm25_weight=0.0, doc_type_filter="doc"),
+    "code": RetrievalStrategy(dense_weight=0.4, sparse_weight=0.6, bm25_weight=0.0, doc_type_filter="code"),
+    "general": RetrievalStrategy(dense_weight=0.6, sparse_weight=0.4, bm25_weight=0.0),
 }
 
 CODE_KEYWORDS = [
@@ -79,22 +78,19 @@ class QueryRouter:
             strategy = STRATEGY_PRESETS["general"].model_copy()
 
         if length_category == "short":
-            strategy.sparse_weight = min(strategy.sparse_weight + 0.1, 0.5)
-            strategy.dense_weight = max(strategy.dense_weight - 0.1, 0.2)
+            strategy.sparse_weight = min(strategy.sparse_weight + 0.1, 0.6)
+            strategy.dense_weight = max(strategy.dense_weight - 0.1, 0.3)
         elif length_category == "long":
             strategy.dense_weight = min(strategy.dense_weight + 0.1, 0.7)
             strategy.sparse_weight = max(strategy.sparse_weight - 0.1, 0.2)
 
         if language == "zh":
-            strategy.sparse_weight = min(strategy.sparse_weight + 0.05, 0.5)
-        elif language == "en":
-            strategy.colbert_weight = min(strategy.colbert_weight + 0.05, 0.4)
+            strategy.sparse_weight = min(strategy.sparse_weight + 0.05, 0.6)
 
-        total = strategy.dense_weight + strategy.sparse_weight + strategy.colbert_weight + strategy.bm25_weight
+        total = strategy.dense_weight + strategy.sparse_weight + strategy.bm25_weight
         if total > 0:
             strategy.dense_weight /= total
             strategy.sparse_weight /= total
-            strategy.colbert_weight /= total
             strategy.bm25_weight /= total
 
         return strategy
@@ -104,6 +100,5 @@ class QueryRouter:
         return {
             "dense": strategy.dense_weight,
             "sparse": strategy.sparse_weight,
-            "colbert": strategy.colbert_weight,
             "bm25": strategy.bm25_weight,
         }

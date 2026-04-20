@@ -1,5 +1,5 @@
 from proknow_rag.retrieval.compressor import ContextCompressor
-from proknow_rag.retrieval.hybrid_search import HybridSearcher, SearchResult, reciprocal_rank_fusion
+from proknow_rag.retrieval.hybrid_search import HybridSearcher, SearchResult
 from proknow_rag.retrieval.query_rewriter import QueryRewriter
 from proknow_rag.retrieval.query_router import QueryRouter, RetrievalStrategy, STRATEGY_PRESETS
 from proknow_rag.retrieval.reranker import BGEReranker
@@ -21,7 +21,6 @@ __all__ = [
     "STRATEGY_PRESETS",
     "detect_prompt_injection",
     "preprocess_query",
-    "reciprocal_rank_fusion",
     "validate_and_sanitize",
     "validate_query",
 ]

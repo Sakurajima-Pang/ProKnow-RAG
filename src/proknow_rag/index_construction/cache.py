@@ -1,20 +1,7 @@
 import json
 from pathlib import Path
 
-import numpy as np
-
 from proknow_rag.common.config import Settings
-
-
-class _NumpyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, (np.integer,)):
-            return int(obj)
-        if isinstance(obj, (np.floating,)):
-            return float(obj)
-        return super().default(obj)
 
 
 class EmbeddingCache:
@@ -22,8 +9,8 @@ class EmbeddingCache:
         self.settings = settings or Settings()
         self._cache_dir = Path(self.settings.qdrant_storage_path) / "embedding_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
-        self._cache_file = self._cache_dir / "embeddings.jsonl"
-        self._cache: dict[str, dict] = {}
+        self._cache_file = self._cache_dir / "index_status.jsonl"
+        self._cache: set[str] = set()
         self._load()
 
     def _load(self) -> None:
@@ -38,26 +25,25 @@ class EmbeddingCache:
                     entry = json.loads(line)
                     content_hash = entry.get("hash")
                     if content_hash:
-                        self._cache[content_hash] = entry.get("data", {})
+                        self._cache.add(content_hash)
                 except (json.JSONDecodeError, KeyError):
                     continue
 
-    def _append_entry(self, content_hash: str, data: dict) -> None:
-        entry = {"hash": content_hash, "data": data}
+    def get(self, content_hash: str) -> bool | None:
+        if content_hash in self._cache:
+            return True
+        return None
+
+    def put(self, content_hash: str, _data: object = None) -> None:
+        if content_hash in self._cache:
+            return
+        self._cache.add(content_hash)
         with open(self._cache_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=False, cls=_NumpyEncoder) + "\n")
-
-    def get(self, content_hash: str) -> dict | None:
-        return self._cache.get(content_hash)
-
-    def put(self, content_hash: str, data: dict) -> None:
-        self._cache[content_hash] = data
-        self._append_entry(content_hash, data)
+            f.write(json.dumps({"hash": content_hash}, ensure_ascii=False) + "\n")
 
     def invalidate(self, content_hash: str) -> None:
-        if content_hash in self._cache:
-            del self._cache[content_hash]
-            self._rebuild_file()
+        self._cache.discard(content_hash)
+        self._rebuild_file()
 
     def clear(self) -> None:
         self._cache.clear()
@@ -66,9 +52,8 @@ class EmbeddingCache:
 
     def _rebuild_file(self) -> None:
         with open(self._cache_file, "w", encoding="utf-8") as f:
-            for content_hash, data in self._cache.items():
-                entry = {"hash": content_hash, "data": data}
-                f.write(json.dumps(entry, ensure_ascii=False, cls=_NumpyEncoder) + "\n")
+            for content_hash in self._cache:
+                f.write(json.dumps({"hash": content_hash}, ensure_ascii=False) + "\n")
 
     def contains(self, content_hash: str) -> bool:
         return content_hash in self._cache

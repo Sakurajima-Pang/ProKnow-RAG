@@ -67,7 +67,6 @@ def cmd_search(args: argparse.Namespace) -> None:
     weights = {
         "dense": strategy.dense_weight,
         "sparse": strategy.sparse_weight,
-        "colbert": strategy.colbert_weight,
         "bm25": strategy.bm25_weight,
     }
 
@@ -76,7 +75,7 @@ def cmd_search(args: argparse.Namespace) -> None:
     compressor = ContextCompressor()
 
     print(f"\n查询: {query}")
-    print(f"路由策略: dense={weights['dense']:.2f} sparse={weights['sparse']:.2f} colbert={weights['colbert']:.2f}")
+    print(f"路由策略: dense={weights['dense']:.2f} sparse={weights['sparse']:.2f} bm25={weights['bm25']:.2f}")
 
     search_start = time.perf_counter()
     results = searcher.search(

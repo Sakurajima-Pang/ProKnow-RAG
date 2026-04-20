@@ -36,8 +36,7 @@ class IndexBuilder:
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
     def _is_indexed(self, _collection_name: str, chunk_hash: str) -> bool:
-        record = self.metadata_manager.get_version(chunk_hash)
-        return record is not None and record.get("indexed", False)
+        return self.cache.contains(chunk_hash)
 
     def build(
         self,
@@ -66,51 +65,11 @@ class IndexBuilder:
         texts = [chunk.content for _, chunk in to_index]
         chunk_hashes = [h for h, _ in to_index]
 
-        cached_results = {}
-        uncached_indices = []
-        uncached_texts = []
-
-        for i, (chunk_hash, text) in enumerate(zip(chunk_hashes, texts)):
-            cached = self.cache.get(chunk_hash)
-            if cached is not None:
-                cached_results[i] = cached
-            else:
-                uncached_indices.append(i)
-                uncached_texts.append(text)
-
-        new_embeddings = {}
-        if uncached_texts:
-            try:
-                new_embeddings = self.embedder.embed(uncached_texts, batch_size=batch_size)
-            except Exception as e:
-                raise IndexConstructionError(f"批量嵌入失败: {e}") from e
-
-        all_dense = [None] * len(texts)
-        all_sparse = [None] * len(texts)
-        all_colbert = [None] * len(texts)
-
-        for i, cached in cached_results.items():
-            all_dense[i] = cached["dense_vectors"]
-            all_sparse[i] = cached["sparse_vectors"]
-            all_colbert[i] = cached["colbert_vectors"]
-
-        for idx, orig_i in enumerate(uncached_indices):
-            dense = new_embeddings["dense_vectors"][idx]
-            sparse = new_embeddings["sparse_vectors"][idx]
-            colbert = new_embeddings["colbert_vectors"][idx]
-            all_dense[orig_i] = dense
-            all_sparse[orig_i] = sparse
-            all_colbert[orig_i] = colbert
-
-            chunk_hash = chunk_hashes[orig_i]
-            self.cache.put(
-                chunk_hash,
-                {
-                    "dense_vectors": dense,
-                    "sparse_vectors": sparse,
-                    "colbert_vectors": colbert,
-                },
-            )
+        logger.info("开始嵌入计算", total=len(texts), batch_size=batch_size)
+        try:
+            embeddings = self.embedder.embed(texts, batch_size=batch_size)
+        except Exception as e:
+            raise IndexConstructionError(f"批量嵌入失败: {e}") from e
 
         points = []
         failed_ids = []
@@ -122,16 +81,12 @@ class IndexBuilder:
                 processed_metadata["chunk_hash"] = chunk_hash
                 processed_metadata["source"] = chunk.source
                 processed_metadata["chunk_type"] = chunk.chunk_type
+                processed_metadata["content"] = chunk.content
 
-                dense_vec = all_dense[i].tolist() if hasattr(all_dense[i], "tolist") else all_dense[i]
-                colbert_raw = all_colbert[i]
-                if isinstance(colbert_raw, list):
-                    colbert_vec = [v.tolist() if hasattr(v, "tolist") else v for v in colbert_raw]
-                elif hasattr(colbert_raw, "tolist"):
-                    colbert_vec = colbert_raw.tolist()
-                else:
-                    colbert_vec = colbert_raw
-                sparse_dict = all_sparse[i]
+                dense_raw = embeddings["dense_vectors"][i]
+                dense_vec = dense_raw.tolist() if hasattr(dense_raw, "tolist") else dense_raw
+
+                sparse_dict = embeddings["sparse_vectors"][i]
                 sparse_indices = []
                 sparse_values = []
                 if isinstance(sparse_dict, dict):
@@ -143,12 +98,14 @@ class IndexBuilder:
                         "id": point_id,
                         "vector": {
                             "dense": dense_vec,
-                            "colbert": colbert_vec,
                             "sparse": {"indices": sparse_indices, "values": sparse_values},
                         },
                         "payload": processed_metadata,
                     }
                 )
+
+                self.cache.put(chunk_hash)
+
             except Exception as e:
                 failed_ids.append(chunk_hash)
                 logger.warning("点构建失败", chunk_hash=chunk_hash, error=str(e))
